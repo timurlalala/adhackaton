@@ -1,0 +1,64 @@
+# .gitignore
+
+# PyCharm
+.idea/
+*.iml
+.vscode/
+.idea
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+# Если вы все же хотите коммитить .ipynb, закомментируйте строку выше и рассмотрите использование nbdime или nbstripoutput
+# Для коммита только исполненных файлов без аутпутов, можно использовать:
+# *.ipynb
+# !notebooks/*.ipynb # Разрешить коммит всех файлов .ipynb в папке notebooks/
+# А затем настроить pre-commit hook с nbstripoutput
+notebooks
+# Python
+__pycache__/
+*.pyc
+*.pyd
+*.so
+venv/
+.venv/
+env/
+
+# Data
+data/raw/
+data/processed/
+# Если используете DVC, эти папки будут содержать .dvc-файлы, которые нужно коммитить
+# !data/raw/.dvc
+# !data/processed/.dvc
+
+# Models
+models/
+# Если используете MLflow/DVC для версионирования моделей, эти папки будут содержать .dvc-файлы
+# !models/.dvc
+
+# Logs
+*.log
+logs/
+
+# DVC
+.dvc/
+dvc.lock
+# Dvcfile               # Обычно это файл Dvcfile.yaml, который нужно коммитить
+# DVC_METRICS_FILE      # Файлы метрик (если не включены в dvc.lock)
+# DVC_PARAMS_FILE       # Файлы параметров (если не включены в dvc.lock)
+
+# MLflow
+mlruns/
+
+# Temp files
+*.tmp
+*~
+
+# System files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment variables
+.env
+.flaskenv
+.secrets

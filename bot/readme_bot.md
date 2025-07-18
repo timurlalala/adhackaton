@@ -9,8 +9,7 @@ handlers/
 │  ├─ create_character.py  
 │  ├─ manage_characters.py  
 │  ├─ edit_character.py  
-│  ├─ chat.py  
-│  └─ character.py  
+│  ├─ chat.py
 keyboards/  
 │  └─ main_menu.py  
 

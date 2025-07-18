@@ -14,6 +14,7 @@ class User(Base):
 
     user_id = Column(BigInteger, primary_key=True, unique=True, comment="Уникальный идентификатор пользователя Telegram")
     created_at = Column(TIMESTAMP, default=datetime.datetime.now, nullable=False, comment="Дата и время регистрации пользователя")
+    active_character = Column(UUID(as_uuid=True), nullable=True, default=None, comment="ID персонажа")
 
     # Отношения
     characters_created = relationship('Character', back_populates='creator')
@@ -31,7 +32,7 @@ class Character(Base):
     character_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, comment="Уникальный идентификатор персонажа")
     creator_user_id = Column(BigInteger, ForeignKey('users.user_id'), nullable=False, comment="ID пользователя, создавшего этого персонажа")
     name = Column(String(255), nullable=False, comment="Имя персонажа")
-    other_params = Column(JSONB, comment="Дополнительные параметры персонажа для настройки LLM (JSONB)")
+    params = Column(Text, comment="Параметры персонажа для настройки LLM (JSONB)")
     hello_message = Column(Text, comment="Приветственное сообщение от персонажа")
     is_shared = Column(Boolean, default=False, nullable=False, comment="Флаг, указывающий, доступен ли персонаж в глобальном каталоге")
     created_at = Column(TIMESTAMP, default=datetime.datetime.now, nullable=False, comment="Дата и время создания персонажа")
@@ -51,14 +52,13 @@ class UserCharacter(Base):
 
     user_id = Column(BigInteger, ForeignKey('users.user_id'), primary_key=True, comment="ID пользователя")
     character_id = Column(UUID(as_uuid=True), ForeignKey('characters.character_id'), primary_key=True, comment="ID персонажа")
-    is_active = Column(Boolean, default=False, nullable=False, comment="Флаг, указывающий, является ли этот персонаж текущим для пользователя")
 
     # Отношения
     user = relationship('User', back_populates='user_catalog_entries')
     character = relationship('Character', back_populates='user_catalog_entries')
 
     def __repr__(self):
-        return f"<UserCharacter(user_id={self.user_id}, character_id={self.character_id}, is_active={self.is_active})>"
+        return f"<UserCharacter(user_id={self.user_id}, character_id={self.character_id})>"
 
 # --- Таблица dialog_history (История диалогов) ---
 class DialogHistory(Base):

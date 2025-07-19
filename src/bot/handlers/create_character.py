@@ -1,210 +1,127 @@
 from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
-from states import CreateCharacter
 from aiogram.filters.state import StateFilter
-from storage import user_data, character_id_counter
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from states import EditCharacter
+import aiohttp
+
+from bot.states import CreateCharacter, OnBoarding, CharactersManagementMenu, chat
+from bot.templates import archs_mapping, ONBOARDING_CREATION_HELLO
+from bot.keyboards.create_character import get_choice_inline_keyboard, get_one_button
+from app.schemas import CharacterCreationRequest, HelloMessageRequest, CharacterSelectionRequest, MessageResponse
+from uuid import UUID
+from config import FASTAPI_URL
+
 
 router = Router()
 
-
-# --- Хелпер для клавиатуры ---
-def get_choice_keyboard(step: str, options: list[str]) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=opt, callback_data=f"{step}_{i}")]
-            for i, opt in enumerate(options)
-        ]
-        + [
-            [InlineKeyboardButton(text="✍️ Напишу сам", callback_data=f"{step}_custom")],
-            [
-                InlineKeyboardButton(
-                    text="🔄 Начать сначала", callback_data="restart_creation"
-                )
-            ],
-        ]
-    )
-
-
-# --- Сброс создания персонажа ---
-@router.callback_query(F.data == "restart_creation")
-async def restart_creation(callback: types.CallbackQuery, state: FSMContext):
-    await state.clear()
-    await callback.message.answer(
-        "🔄 Создание персонажа сброшено. Введи имя персонажа:"
-    )
-    await state.set_state(CreateCharacter.waiting_for_name)
-    await callback.answer()
-
-
 # --- Начало создания ---
-@router.message(F.text == "🆕 Создать персонажа")
-async def start_create(message: types.Message, state: FSMContext):
-    await state.clear()
+@router.message(F.text == "Свой персонаж", StateFilter(OnBoarding.waiting_onboarding_menu))
+async def start_create_character(message: types.Message, state: FSMContext):
+    await message.answer(ONBOARDING_CREATION_HELLO, reply_markup=get_one_button())
+    await state.set_state(CharactersManagementMenu.waiting_for_option)
+
+
+@router.message(StateFilter(CharactersManagementMenu.waiting_for_option,  chat), F.text == "Создать персонажа")
+async def start_create_character(message: types.Message, state: FSMContext):
     # сохраняем user_id один раз
     await state.update_data(user_id=message.from_user.id)
-    await message.answer("👤 Введи имя персонажа:")
+    await message.answer("Как зовут вашего персонажа?")
     await state.set_state(CreateCharacter.waiting_for_name)
 
 
-@router.message(CreateCharacter.waiting_for_name)
-async def get_name(message: types.Message, state: FSMContext):
+@router.message(StateFilter(CreateCharacter.waiting_for_name))
+async def register_name(message: types.Message, state: FSMContext):
     await state.update_data(name=message.text)
-    await message.answer(
-        "📝 Введи краткое описание персонажа.\n\n"
-        "👉 Подумай:\n• Кто он такой?\n• Зачем он тебе нужен?\n\n"
-        "✨ Пример:\n«Бармен, который порекомендует напитки.»"
-    )
-    await state.set_state(CreateCharacter.waiting_for_description)
-
-
-@router.message(CreateCharacter.waiting_for_description)
-async def get_description(message: types.Message, state: FSMContext):
-    await state.update_data(description=message.text)
-    await message.answer(
-        "🎭 Выбери архетип:",
-        reply_markup=get_choice_keyboard(
-            "arch", ["🤝 Друг", "🧙 Наставник", "😈 Враг", "💘 Романтик"]
-        ),
-    )
+    await message.answer("На кого похож этот персонаж по своей сути?",
+                         reply_markup=get_choice_inline_keyboard('arch', options=[
+                             'Наставник',
+                             'Понимающий',
+                             'Мотиватор',
+                             'Клоун',
+                             'Провокатор',
+                             'Романтик',
+                             'Исследователь',
+                             'Монипулятор',
+                         ]))
     await state.set_state(CreateCharacter.waiting_for_archetype)
 
-
-# --- Универсальный хендлер выбора характеристики ---
-@router.callback_query(
-    StateFilter(CreateCharacter),  # ← добавили сюда
-    F.data.regexp(r"^(arch|intellect|emot|speech|conflict|taboo|feat)_(\d+|custom)$"),
-)
-async def handle_choice(callback: types.CallbackQuery, state: FSMContext):
-    step_map = {
-        "arch": ("archetype", ["Друг", "Наставник", "Враг", "Романтик"]),
-        "intellect": ("intellect", ["Простой", "Умный", "Философ"]),
-        "emot": ("emotionality", ["Холодный", "Умеренный", "Эмоциональный"]),
-        "speech": ("speech", ["Сухой", "Образный", "Шутливый", "Цитатный"]),
-        "conflict": ("conflict", ["Спокоен", "Язвителен", "Уходит от темы"]),
-        "taboo": ("taboo", ["Не матерится", "Не врет", "Не критикует"]),
-        "feat": ("features", ["Повторяет фразу", "Мурчит", "Щёлкает пальцами"]),
-    }
-
-    key, label_list = step_map[callback.data.split("_")[0]]
-    choice = callback.data.split("_")[1]
-
-    if choice == "custom":
-        await state.update_data(_custom_step=key)
-        await state.set_state(CreateCharacter.waiting_for_custom_prompt)
-        await callback.message.answer(f"✍️ Введи свой вариант:")
-        return
-
-    await state.update_data({key: label_list[int(choice)]})
-    await callback.answer()
-    await ask_next_step(callback.message, state)
-
-
-# --- Хендлер для "напишу сам" ---
-@router.message(CreateCharacter.waiting_for_custom_prompt)
-async def handle_custom_input(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    key = data.get("_custom_step")
-    if key:
-        await state.update_data({key: message.text})
-        await ask_next_step(message, state)
-
-
-# --- Переход по шагам создания ---
-async def ask_next_step(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-
-    if "intellect" not in data:
-        await message.answer(
-            "🧠 Выбери уровень интеллекта:",
-            reply_markup=get_choice_keyboard(
-                "intellect", ["Простой", "Умный", "Философ"]
-            ),
-        )
-        await state.set_state(CreateCharacter.waiting_for_intellect)
-
-    elif "emotionality" not in data:
-        await message.answer(
-            "❤️ Эмоциональность персонажа:",
-            reply_markup=get_choice_keyboard(
-                "emot", ["Холодный", "Умеренный", "Эмоциональный"]
-            ),
-        )
-        await state.set_state(CreateCharacter.waiting_for_emotionality)
-
-    elif "speech" not in data:
-        await message.answer(
-            "🗣 Как говорит персонаж?",
-            reply_markup=get_choice_keyboard(
-                "speech", ["Сухо", "Образно", "Шутливо", "Цитатами"]
-            ),
-        )
-        await state.set_state(CreateCharacter.waiting_for_speech)
-
-    elif "conflict" not in data:
-        await message.answer(
-            "🧩 Как ведёт себя в конфликте?",
-            reply_markup=get_choice_keyboard(
-                "conflict", ["Спокоен", "Язвителен", "Уходит от темы"]
-            ),
-        )
-        await state.set_state(CreateCharacter.waiting_for_conflict)
-
-    elif "taboo" not in data:
-        await message.answer(
-            "🛑 Чего он никогда не делает?",
-            reply_markup=get_choice_keyboard(
-                "taboo", ["Не матерится", "Не врёт", "Не критикует"]
-            ),
-        )
-        await state.set_state(CreateCharacter.waiting_for_taboo)
-
-    elif "features" not in data:
-        await message.answer(
-            "🪄 Особенности персонажа? Повторяющиеся привычки, звуки, жесты, любимые фразы.",
-            reply_markup=get_choice_keyboard(
-                "feat", ["Повторяет фразу", "Мурчит", "Гавкает"]
-            ),
-        )
-        await state.set_state(CreateCharacter.waiting_for_features)
-
-    else:
-        await finish_character(message, state)
-
-
-# --- Финальное сохранение ---
-async def finish_character(message: types.Message, state: FSMContext):
-    global character_id_counter
-
-    data = await state.get_data()
-    # теперь берём именно тот user_id, который сохранили при старте
-    user_id = data["user_id"]
-
-    instruction = (
-        f"🎭 Архетип: {data['archetype']}\n"
-        f"🧠 Интеллект: {data['intellect']}\n"
-        f"❤️ Эмоциональность: {data['emotionality']}\n"
-        f"🗣 Манера речи: {data['speech']}\n"
-        f"🧩 Поведение в конфликте: {data['conflict']}\n"
-        f"🛑 Запреты: {data['taboo']}\n"
-        f"🪄 Особенности: {data['features']}"
+@router.callback_query(StateFilter(CreateCharacter.waiting_for_archetype))
+async def register_arch(callback_query: types.CallbackQuery, state: FSMContext):
+    await state.update_data(
+        personality="Вопрос: На кого похож этот персонаж по своей сути?\nОтвет: "
+                    + archs_mapping[int(callback_query.data.split('_')[1])]
     )
+    await callback_query.message.edit_reply_markup(reply_markup=None)
+    await callback_query.answer(f"Вы выбрали вариант {archs_mapping[int(callback_query.data.split('_')[1])]}")
+    await callback_query.answer(f"Опишите характер персонажа и манеру общения.")
+    await state.set_state(CreateCharacter.waiting_for_personality)
 
-    character = {
-        "id": character_id_counter,
-        "name": data["name"],
-        "description": data["description"],
-        "instruction": instruction,
-    }
-    character_id_counter += 1
+@router.message(StateFilter(CreateCharacter.waiting_for_personality))
+async def register_personality(message: types.Message, state: FSMContext):
+    await state.update_data(
+        personality="\nВопрос: Опишите характер персонажа и манеру общения.\nОтвет: "
+                    + message.text
+    )
+    await message.answer("Какие у вашего персонажа особые привычки или увлечения?")
+    await state.set_state(CreateCharacter.waiting_for_hobbies)
 
-    # сохраняем под тем самым user_id
-    user_data.setdefault(user_id, {"characters": [], "selected": None})[
-        "characters"
-    ].append(character)
+@router.message(StateFilter(CreateCharacter.waiting_for_hobbies))
+async def register_hobbies(message: types.Message, state: FSMContext):
+    await state.update_data(
+        personality="\nВопрос: Какие у вашего персонажа особые привычки или увлечения?\nОтвет: "
+                    + message.text
+    )
+    await message.answer("Как персонаж реагирует на комплименты и критику?")
+    await state.set_state(CreateCharacter.waiting_for_critique_tolerance)
 
-    # print("user_data теперь:", user_data)  # debug
+@router.message(StateFilter(CreateCharacter.waiting_for_critique_tolerance))
+async def register_critique_tolerance(message: types.Message, state: FSMContext):
+    await state.update_data(
+        personality="\nВопрос: Как персонаж реагирует на комплименты и критику?\nОтвет: "
+                    + message.text
+    )
+    await message.answer("О чем ваш персонаж никогда не будет говорить?")
+    await state.set_state(CreateCharacter.waiting_for_taboo)
 
-    await message.answer(f"✅ Персонаж «{character['name']}» создан и сохранён!")
-    await state.clear()
+@router.message(StateFilter(CreateCharacter.waiting_for_taboo))
+async def register_taboo(message: types.Message, state: FSMContext):
+    await state.update_data(
+        personality="\nВопрос: О чем ваш персонаж никогда не будет говорить?\nОтвет: "
+                    + message.text
+    )
+    data = await state.get_data()
+    request = CharacterCreationRequest(user_id=int(data['user_id']), name=data['name'], personality=data['personality'], params=None)
+    try:
+        async with aiohttp.ClientSession() as session:
+
+            async with session.post(
+                f"{FASTAPI_URL}/api/v1/create_character",
+                json=request.model_dump(mode='json')
+            ) as response:
+                if response.status != 201:
+                    await message.answer("Ошибка при создании персонажа")
+                    return
+                char_id = await response.json()
+                char_id = UUID(char_id['character_id'])
+
+            async with session.post(
+                f"{FASTAPI_URL}/api/v1/select_character",
+                json=CharacterSelectionRequest(user_id=int(data['user_id']),
+                                                character_id=char_id).model_dump(mode='json')
+            ) as response:
+                if response.status != 200:
+                    await message.answer("Ошибка при выборе персонажа")
+                    return
+
+            async with session.post(
+                f"{FASTAPI_URL}/api/v1/chat/hello_message",
+                json=HelloMessageRequest(user_id=int(data['user_id'])).model_dump(mode='json')
+            ) as response:
+                if response.status != 200:
+                    await message.answer("Ошибка при генерации сообщения")
+                    return
+                bot_answer = MessageResponse(**(await response.json())).message
+            await message.answer(bot_answer)
+    except Exception as e:
+        await message.answer(f"Ошибка {e}")
+
+    await state.set_state(chat)

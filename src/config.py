@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+from fastapi import FastAPI
 
 load_dotenv()
 
@@ -19,3 +20,5 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+FASTAPI_URL = os.getenv("FASTAPI_URL")

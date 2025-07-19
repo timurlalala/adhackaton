@@ -45,4 +45,5 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Это делается от root перед переключением на appuser
 RUN adduser --system --group appuser && \
     chown -R appuser:appuser /app && \
-    chmod a+x ./docker/*.sh
+    chmod a+x ./docker/*.sh && \
+    chmod a+x ./src/main_bot.py

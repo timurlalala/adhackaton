@@ -30,3 +30,11 @@ services:
       - ${APP_PORT}:8000
     depends_on:
       - db
+
+  bot:
+    build:
+      context: .
+    container_name: bot
+    command: ["python", "./src/main_bot.py"]
+    depends_on:
+      - app

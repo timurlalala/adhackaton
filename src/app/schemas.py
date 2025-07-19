@@ -10,6 +10,9 @@ class CharacterCreationRequest(BaseModel):
     params: str | None = Field(None)
     personality: str | None = Field(None)
 
+class CharacterIDResponse(BaseModel):
+    character_id: UUID
+
 # class CharacterUpdateRequest(BaseModel):
 #     user_id: int
 #     character_id: UUID

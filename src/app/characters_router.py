@@ -20,7 +20,7 @@ router = APIRouter(
     tags=["API"],
 )
 
-@router.post('/create_character', status_code=status.HTTP_201_CREATED)
+@router.post('/create_character', status_code=status.HTTP_201_CREATED, response_model=CharacterIDResponse)
 async def create_character(
         request: CharacterCreationRequest,
         session: Annotated[AsyncSession, Depends(get_async_session)],
@@ -44,7 +44,7 @@ async def create_character(
             messages_for_openai = [{"role": "system", "content": CREATE_RANDOM_PROMPT}]
         else:
             messages_for_openai = [
-                {"role": "system", "content": CREATE_SYSTEM_PROMPT_TEMPLATE.format(presonality=request.personality)}
+                {"role": "system", "content": CREATE_SYSTEM_PROMPT_TEMPLATE.format(personality=request.personality)}
             ]
 
             # 4. Отправляем запрос в OpenAI API
@@ -110,7 +110,7 @@ async def create_character(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail=f"Ошибка при добавлении персонажа в каталог: {e}")
 
-    return character.character_id
+    return CharacterIDResponse(character_id=character.character_id)
 
 
 # @router.post('/update_character', status_code=status.HTTP_200_OK)
@@ -157,7 +157,7 @@ async def create_character(
 #         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
 #                             detail=f"Ошибка при обновлении персонажа: {e}")
 
-@router.post('/select_character', status_code=status.HTTP_200_OK)
+@router.post('/select_character', status_code=status.HTTP_200_OK, response_model=CharacterIDResponse)
 async def select_character(
         request: CharacterSelectionRequest,
         session: Annotated[AsyncSession, Depends(get_async_session)]
@@ -196,7 +196,7 @@ async def select_character(
 
         try:
             await session.commit()
-            return request.character_id
+            return CharacterIDResponse(character_id=request.character_id)
         except Exception as e:
             await session.rollback()
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -205,7 +205,7 @@ async def select_character(
         raise HTTPException(status_code=HTTP_404_NOT_FOUND,
                              detail=f"У пользователя в каталоге нет бота с id == {request.character_id}")
 
-@router.post('/remove_character', status_code=status.HTTP_200_OK)
+@router.post('/remove_character', status_code=status.HTTP_200_OK, response_model=CharacterIDResponse)
 async def remove_character(
         request: CharacterSelectionRequest,
         session: Annotated[AsyncSession, Depends(get_async_session)]
@@ -238,7 +238,7 @@ async def remove_character(
 
     try:
         await session.commit()
-        return request.character_id
+        return CharacterIDResponse(character_id=request.character_id)
     except Exception as e:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -306,7 +306,7 @@ async def remove_character(
 #         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
 #                             detail=f"Ошибка при удалении персонажа из БД: {e}")
 
-@router.post('/add_character', status_code=status.HTTP_200_OK)
+@router.post('/add_character', status_code=status.HTTP_200_OK, response_model=CharacterIDResponse)
 async def add_character(
         request: CharacterAddRequest,
         session: Annotated[AsyncSession, Depends(get_async_session)]
@@ -339,7 +339,7 @@ async def add_character(
 
     try:
         await session.commit()
-        return request.character_id
+        return CharacterIDResponse(character_id=request.character_id)
     except Exception as e:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

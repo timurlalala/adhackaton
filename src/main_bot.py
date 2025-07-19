@@ -2,13 +2,13 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from config import BOT_TOKEN
-from handlers.start import router as start_router
+from bot.handlers.start import router as start_router
 
 # from handlers.character import router as character_router
-from handlers.chat import router as chat_router
-from handlers.create_character import router as create_router
-from handlers.manage_characters import router as manage_router
-from handlers.edit_character import router as edit_router
+from bot.handlers.chat import router as chat_router
+from bot.handlers.create_character import router as create_router
+from bot.handlers.manage_characters import router as manage_router
+from bot.handlers.edit_character import router as edit_router
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())

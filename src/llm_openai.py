@@ -1,14 +1,12 @@
 from openai import AsyncOpenAI
 from typing import AsyncGenerator
 import os
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+from config import OPENAI_API_KEY, OPENROUTER_API_KEY
 
 if OPENAI_API_KEY:
     openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
     model_name = "gpt-4o-mini"
 else:
-    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
     if OPENROUTER_API_KEY:
         openai_client = AsyncOpenAI(base_url="https://openrouter.ai/api/v1",
                                 api_key=OPENROUTER_API_KEY)

@@ -1,4 +1,4 @@
-aiofiles==24.1.0
+iofiles==24.1.0
 aiogram==3.21.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.14

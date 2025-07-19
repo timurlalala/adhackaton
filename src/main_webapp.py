@@ -18,4 +18,4 @@ app.include_router(msg_router)
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=False, host="0.0.0.0", log_level="info")
+    uvicorn.run("main_webapp:app", reload=False, host="0.0.0.0", log_level="info")

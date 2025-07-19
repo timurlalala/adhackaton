@@ -14,3 +14,8 @@ SECRET = os.getenv("SECRET")
 
 APP_HOST = os.getenv("APP_HOST")
 APP_PORT = os.getenv("APP_PORT")
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")

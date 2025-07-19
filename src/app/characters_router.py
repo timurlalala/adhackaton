@@ -335,8 +335,14 @@ async def add_character(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail=f"Данного персонажа нельзя добавить в каталог")
 
-    session.add(UserCharacter(user_id=request.user_id, character_id=request.character_id))
-
+    # session.add(UserCharacter(user_id=request.user_id, character_id=request.character_id))
+    stmt = insert(UserCharacter).values(
+        user_id=request.user_id,
+        character_id=request.character_id
+    ).on_conflict_do_nothing(
+        index_elements=['user_id', 'character_id']  # Укажите столбцы, которые образуют уникальный индекс
+    )
+    await session.execute(stmt)
     try:
         await session.commit()
         return CharacterIDResponse(character_id=request.character_id)

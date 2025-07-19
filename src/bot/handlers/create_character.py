@@ -51,7 +51,7 @@ async def register_arch(callback_query: types.CallbackQuery, state: FSMContext):
                     + archs_mapping[int(callback_query.data.split('_')[1])]
     )
     await callback_query.message.edit_reply_markup(reply_markup=None)
-    await callback_query.answer(f"Вы выбрали вариант {archs_mapping[int(callback_query.data.split('_')[1])]}")
+    await callback_query.bot.answer_callback_query(callback_query.id, text=f"Вы выбрали вариант {archs_mapping[int(callback_query.data.split('_')[1])]}", show_alert=False)
     await callback_query.answer(f"Опишите характер персонажа и манеру общения.")
     await state.set_state(CreateCharacter.waiting_for_personality)
 

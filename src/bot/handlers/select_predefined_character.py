@@ -43,7 +43,7 @@ async def start_predefined_character(callback_query: types.CallbackQuery, state:
                     await callback_query.answer("Ошибка при генерации сообщения")
                     return
                 bot_answer = MessageResponse(**(await response.json())).message
-            await callback_query.bot.answer_callback_query(callback_query.id, text="персонаж выбран!", show_alert=True)
+            await callback_query.bot.answer_callback_query(callback_query.id, text="персонаж выбран!", show_alert=False)
             await callback_query.answer(bot_answer)
     except Exception as e:
         await callback_query.answer(f"Ошибка {e}")

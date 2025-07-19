@@ -23,6 +23,9 @@ services:
       context: .
     container_name: fastapi_app
     command: [ "/app/docker/app.sh" ]
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+#      - OPENAI_API_KEY=${OPENAI_API_KEY}
     ports:
       - ${APP_PORT}:8000
     depends_on:

@@ -1,7 +1,9 @@
 import logging
 from fastapi import FastAPI
 import uvicorn
-from app.router import router
+from app.characters_router import router as char_router
+from app.messages_router import router as msg_router
+
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -11,7 +13,8 @@ app = FastAPI()
 async def root():
     return {"message": "App healthy"}
 
-app.include_router(router)
+app.include_router(char_router)
+app.include_router(msg_router)
 
 
 if __name__ == "__main__":

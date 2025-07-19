@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 import uuid
 import datetime
 
+# TODO продумать изменения в формате таблиц
 # Создаем базовый класс для декларативных моделей
 Base = declarative_base()
 
@@ -33,8 +34,7 @@ class Character(Base):
     creator_user_id = Column(BigInteger, ForeignKey('users.user_id'), nullable=False, comment="ID пользователя, создавшего этого персонажа")
     name = Column(String(255), nullable=False, comment="Имя персонажа")
     params = Column(Text, comment="Параметры персонажа для настройки LLM (JSONB)")
-    hello_message = Column(Text, comment="Приветственное сообщение от персонажа")
-    is_shared = Column(Boolean, default=False, nullable=False, comment="Флаг, указывающий, доступен ли персонаж в глобальном каталоге")
+    is_shared = Column(Boolean, default=True, nullable=False, comment="Флаг, указывающий, доступен ли персонаж в глобальном каталоге")
     created_at = Column(TIMESTAMP, default=datetime.datetime.now, nullable=False, comment="Дата и время создания персонажа")
     updated_at = Column(TIMESTAMP, default=datetime.datetime.now, onupdate=datetime.datetime.now, comment="Дата и время последнего обновления информации о персонаже")
 

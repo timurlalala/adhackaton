@@ -30,7 +30,7 @@ async def start_create_character(message: types.Message, state: FSMContext):
 
 @router.message(StateFilter(CreateCharacter.waiting_for_name))
 async def register_name(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
+    await state.update_data(name=message.text, personality="Вопрос: Как зовут вашего персонажа?\nОтвет: " + message.text)
     await message.answer("На кого похож этот персонаж по своей сути?",
                          reply_markup=get_choice_inline_keyboard('arch', options=[
                              'Наставник',
@@ -40,25 +40,27 @@ async def register_name(message: types.Message, state: FSMContext):
                              'Провокатор',
                              'Романтик',
                              'Исследователь',
-                             'Монипулятор',
+                             'Манипулятор',
                          ]))
     await state.set_state(CreateCharacter.waiting_for_archetype)
 
 @router.callback_query(StateFilter(CreateCharacter.waiting_for_archetype))
 async def register_arch(callback_query: types.CallbackQuery, state: FSMContext):
-    await state.update_data(
-        personality="Вопрос: На кого похож этот персонаж по своей сути?\nОтвет: "
-                    + archs_mapping[int(callback_query.data.split('_')[1])]
-    )
+    # data = await state.get_data()
+    # await state.update_data(
+    #     personality=data['personality'] + "Вопрос: Какой психологический архетип у вашего персонажа??\nОтвет: "
+    #                 + archs_mapping[int(callback_query.data.split('_')[1])]
+    # )
     await callback_query.message.edit_reply_markup(reply_markup=None)
     await callback_query.bot.answer_callback_query(callback_query.id, text=f"Вы выбрали вариант {archs_mapping[int(callback_query.data.split('_')[1])]}", show_alert=False)
-    await callback_query.answer(f"Опишите характер персонажа и манеру общения.")
+    await callback_query.bot.send_message(callback_query.from_user.id, f"Опишите характер персонажа и манеру общения.")
     await state.set_state(CreateCharacter.waiting_for_personality)
 
 @router.message(StateFilter(CreateCharacter.waiting_for_personality))
 async def register_personality(message: types.Message, state: FSMContext):
+    data = await state.get_data()
     await state.update_data(
-        personality="\nВопрос: Опишите характер персонажа и манеру общения.\nОтвет: "
+        personality=data['personality'] +"\nВопрос: Опишите характер персонажа и манеру общения.\nОтвет: "
                     + message.text
     )
     await message.answer("Какие у вашего персонажа особые привычки или увлечения?")
@@ -66,8 +68,9 @@ async def register_personality(message: types.Message, state: FSMContext):
 
 @router.message(StateFilter(CreateCharacter.waiting_for_hobbies))
 async def register_hobbies(message: types.Message, state: FSMContext):
+    data = await state.get_data()
     await state.update_data(
-        personality="\nВопрос: Какие у вашего персонажа особые привычки или увлечения?\nОтвет: "
+        personality=data['personality'] + "\nВопрос: Какие у вашего персонажа особые привычки или увлечения?\nОтвет: "
                     + message.text
     )
     await message.answer("Как персонаж реагирует на комплименты и критику?")
@@ -75,8 +78,9 @@ async def register_hobbies(message: types.Message, state: FSMContext):
 
 @router.message(StateFilter(CreateCharacter.waiting_for_critique_tolerance))
 async def register_critique_tolerance(message: types.Message, state: FSMContext):
+    data = await state.get_data()
     await state.update_data(
-        personality="\nВопрос: Как персонаж реагирует на комплименты и критику?\nОтвет: "
+        personality=data['personality'] + "\nВопрос: Как персонаж реагирует на комплименты и критику?\nОтвет: "
                     + message.text
     )
     await message.answer("О чем ваш персонаж никогда не будет говорить?")
@@ -84,8 +88,9 @@ async def register_critique_tolerance(message: types.Message, state: FSMContext)
 
 @router.message(StateFilter(CreateCharacter.waiting_for_taboo))
 async def register_taboo(message: types.Message, state: FSMContext):
+    data = await state.get_data()
     await state.update_data(
-        personality="\nВопрос: О чем ваш персонаж никогда не будет говорить?\nОтвет: "
+        personality=data['personality'] + "\nВопрос: О чем ваш персонаж никогда не будет говорить?\nОтвет: "
                     + message.text
     )
     data = await state.get_data()

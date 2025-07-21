@@ -10,7 +10,7 @@ else:
     if OPENROUTER_API_KEY:
         openai_client = AsyncOpenAI(base_url="https://openrouter.ai/api/v1",
                                 api_key=OPENROUTER_API_KEY)
-        model_name = "deepseek/deepseek-chat-v3-0324:free"
+        model_name = "google/gemma-3-27b-it:free"
     else:
         raise ValueError("API_KEY не установлен в переменных окружения.")
 
